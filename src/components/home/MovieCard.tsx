@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Play, Star, Bookmark, Check } from "lucide-react";
 import { MovieItem } from "@/types/movie";
 import { isFavorite, toggleFavorite } from "@/lib/storage";
@@ -14,7 +14,12 @@ interface MovieCardProps {
 
 export default function MovieCard({ movie, priority = false }: MovieCardProps) {
   const [imgSrc, setImgSrc] = useState(movie.posterUrl);
-  const [saved, setSaved] = useState(() => isFavorite(movie.slug));
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(movie.posterUrl);
+    setSaved(isFavorite(movie.slug));
+  }, [movie.posterUrl, movie.slug]);
 
   const handleToggleVault = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,8 +38,8 @@ export default function MovieCard({ movie, priority = false }: MovieCardProps) {
   };
 
   return (
-    <div className="group relative rounded-xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-red-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-red-600/10 hover:-translate-y-1.5 flex flex-col">
-      <Link href={`/movie/${movie.slug}`} className="relative aspect-[2/3] w-full overflow-hidden block">
+    <div className="group relative rounded-xl overflow-hidden bg-zinc-900/60 border border-white/5 hover:border-red-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-red-600/10 hover:-translate-y-1.5 flex flex-col h-full">
+      <Link href={`/movie/${movie.slug}`} className="relative aspect-[2/3] w-full overflow-hidden block bg-zinc-950">
         {/* Poster Image */}
         <Image
           src={imgSrc}
@@ -49,7 +54,7 @@ export default function MovieCard({ movie, priority = false }: MovieCardProps) {
         />
 
         {/* Gradient Shadow Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/20 opacity-80 group-hover:opacity-60 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-transparent to-black/20 opacity-80 group-hover:opacity-50 transition-opacity pointer-events-none" />
 
         {/* Quality Badge (1080p / 4K) */}
         <div className="absolute top-2.5 left-2.5 z-10">
@@ -71,7 +76,7 @@ export default function MovieCard({ movie, priority = false }: MovieCardProps) {
         </div>
 
         {/* Hover Center Play Button */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 pointer-events-none">
           <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-600/50 group-hover:scale-110 transition-transform">
             <Play className="w-5 h-5 fill-white ml-0.5" />
           </div>
@@ -92,7 +97,7 @@ export default function MovieCard({ movie, priority = false }: MovieCardProps) {
       </Link>
 
       {/* Info Info Section */}
-      <div className="p-3 flex flex-col justify-between flex-1">
+      <div className="p-3 flex flex-col justify-between flex-1 bg-zinc-900/40">
         <Link href={`/movie/${movie.slug}`}>
           <h3 className="font-bold text-sm text-zinc-100 line-clamp-1 group-hover:text-red-400 transition-colors">
             {movie.title}
