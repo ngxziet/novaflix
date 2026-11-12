@@ -1,0 +1,16 @@
+{
+  "name": "NovaFlix Private Cinema",
+  "short_name": "NovaFlix",
+  "description": "Rạp phim cá nhân cao cấp chuẩn 1080p FHD với trợ lý AI Gemini và hiệu ứng Ambient Glow",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07080b",
+  "theme_color": "#07080b",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+import { MovieItem } from "@/types/movie";
+
+export const APP_NAME = "NovaFlix";
+export const APP_TAGLINE = "Private Cinema Experience";
+
+export const GENRES = [
+  { id: "hanh-dong", name: "Hành Động", icon: "⚔️" },
+  { id: "khoa-hoc-vien-tuong", name: "Viễn Tưởng", icon: "🚀" },
+  { id: "kinh-di", name: "Kinh Dị", icon: "👻" },
+  { id: "tam-ly", name: "Tâm Lý - Kịch Tính", icon: "🧠" },
+  { id: "tinh-cam", name: "Lãng Mạn", icon: "❤️" },
+  { id: "hoat-hinh", name: "Hoạt Hình / Anime", icon: "🎨" },
+  { id: "phieu-luu", name: "Phiêu Lưu", icon: "🗺️" },
+  { id: "hinh-su", name: "Tội Phạm - Hình Sự", icon: "🕵️" },
+  { id: "hai-huoc", name: "Hài Hước", icon: "🍿" },
+  { id: "chien-tranh", name: "Chiến Tranh", icon: "🎖️" },
+];
+
+// Mẫu phim bom tấn chuẩn 1080p Full HD sẵn có
+export const FALLBACK_BLOCKBUSTERS: MovieItem[] = [
+  {
+    id: "oppenheimer-2023",
+    slug: "oppenheimer",
+    title: "Oppenheimer",
+    originalTitle: "Oppenheimer",
+    overview: "Câu chuyện lịch sử đầy kịch tính về cuộc đời của J. Robert Oppenheimer, nhà vật lý lý thuyết lãnh đạo Dự án Manhattan chế tạo bom nguyên tử đầu tiên trong Thế chiến thứ hai.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+    releaseYear: 2023,
+    rating: 8.9,
+    quality: "4K",
+    duration: "3h 00m",
+    genres: ["Lịch Sử", "Kịch Tính", "Tâm Lý"],
+    country: "Mỹ",
+  },
+  {
+    id: "dune-part-two",
+    slug: "dune-part-two",
+    title: "Hành Tinh Cát: Phần Hai",
+    originalTitle: "Dune: Part Two",
+    overview: "Paul Atreides hợp nhất với Chani và người Fremen trong cuộc chiến phục thù những kẻ đã hủy diệt gia tộc mình, đối mặt với sự lựa chọn giữa tình yêu và số phận vũ trụ.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/xOMo8BRK7PfcJv9JCnx7s52009.jpg",
+    releaseYear: 2024,
+    rating: 8.8,
+    quality: "4K",
+    duration: "2h 46m",
+    genres: ["Viễn Tưởng", "Phiêu Lưu", "Hành Động"],
+    country: "Mỹ",
+  },
+  {
+    id: "interstellar-2014",
+    slug: "interstellar",
+    title: "Hố Đen Tử Thần",
+    originalTitle: "Interstellar",
+    overview: "Một nhóm các nhà thám hiểm thực hiện nhiệm vụ quan trọng nhất lịch sử nhân loại: du hành vượt ra khỏi dải ngân hà để khám phá xem liệu tương lai loài người có còn hy vọng giữa các vì sao.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/rAiYTsqJiOkn0Ci4dsGNCU671aG.jpg",
+    releaseYear: 2014,
+    rating: 8.7,
+    quality: "1080p",
+    duration: "2h 49m",
+    genres: ["Viễn Tưởng", "Phiêu Lưu", "Kịch Tính"],
+    country: "Mỹ",
+  },
+  {
+    id: "shutter-island",
+    slug: "shutter-island",
+    title: "Đảo Kinh Hoàng",
+    originalTitle: "Shutter Island",
+    overview: "Năm 1954, một đặc vụ liên bang điều tra vụ mất tích bí ẩn của một nữ sát nhân trốn thoát khỏi bệnh viện tâm thần tối mật trên một hòn đảo xa xôi hẻo lánh.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/4GDy0PHYX3VRXUtwK5ysagvk2Te.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/7c9UVPPiTPltouxShY9JH934xht.jpg",
+    releaseYear: 2010,
+    rating: 8.5,
+    quality: "1080p",
+    duration: "2h 18m",
+    genres: ["Tâm Lý", "Bí Ẩn", "Kinh Dị"],
+    country: "Mỹ",
+  },
+  {
+    id: "spider-man-across-the-spider-verse",
+    slug: "spider-man-across-the-spider-verse",
+    title: "Người Nhện: Du Hành Vũ Trụ Nhện",
+    originalTitle: "Spider-Man: Across the Spider-Verse",
+    overview: "Miles Morales được phóng qua Đa Vũ Trụ, nơi cậu gặp gỡ một liên minh những Người Nhện chịu trách nhiệm bảo vệ sự tồn vong của nó.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/4HodYYKEIsGOdinkGi2Ucz6X9i0.jpg",
+    releaseYear: 2023,
+    rating: 8.7,
+    quality: "4K",
+    duration: "2h 20m",
+    genres: ["Hoạt Hình", "Hành Động", "Viễn Tưởng"],
+    country: "Mỹ",
+  },
+  {
+    id: "blade-runner-2049",
+    slug: "blade-runner-2049",
+    title: "Tội Phạm Nhân Bản 2049",
+    originalTitle: "Blade Runner 2049",
+    overview: "Một Blade Runner trẻ tuổi phát hiện ra một bí mật chôn giấu từ lâu có thể đẩy những gì còn lại của xã hội vào hỗn loạn, dẫn anh tìm kiếm cựu cảnh sát Rick Deckard.",
+    posterUrl: "https://image.tmdb.org/t/p/w780/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg",
+    backdropUrl: "https://image.tmdb.org/t/p/original/ilRyazdMJwN05exqhwK4tMKBYZs.jpg",
+    releaseYear: 2017,
+    rating: 8.6,
+    quality: "1080p",
+    duration: "2h 44m",
+    genres: ["Viễn Tưởng", "Bí Ẩn", "Kịch Tính"],
+    country: "Mỹ",
+  }
+];
+
+// Stream HLS 1080p mẫu dự phòng tốc độ cao
+export const BACKUP_HLS_1080P_STREAM = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+export const TEARS_OF_STEEL_1080P_HLS = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";

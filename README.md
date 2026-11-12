@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎬 NovaFlix - Private Cinema Experience
 
-## Getting Started
+> **Nền tảng xem phim cá nhân thế hệ mới**, chuẩn hình ảnh tối thiểu **1080p Full HD / 4K**, giao diện điện ảnh Cinematic Glassmorphism với hiệu ứng **Ambient Glow**, tích hợp **2 chế độ tìm kiếm độc lập (Từ khóa & Gemini AI)**, và tối ưu hóa 100% cho việc triển khai trên **Vercel**.
 
-First, run the development server:
+---
+
+## ✨ Điểm Nổi Bật Vượt Trội So Với Netflix
+
+- 💎 **Chuẩn hình ảnh $\ge$ 1080p (Full HD / 4K):** Bộ lọc nguồn thông minh tự động ưu tiên các luồng phát tốc độ cao và độ sắc nét tối đa, loại bỏ hoàn toàn bản CAM/SD kém chất lượng.
+- 🌌 **Hiệu ứng Hào quang Ambient Glow:** Đồng bộ màu sắc viền video ra nền đen xung quanh màn hình bằng GPU Canvas theo thời gian thực (như rạp IMAX tràn viền).
+- 🔊 **Audio Booster (180% - 200%):** Tích hợp Web Audio API khuếch đại âm lượng thoại (Vocal Clarity), nghe rõ từng câu thoại ngay cả ban đêm mà không cần chỉnh to volume.
+- 🧠 **Dual Search Engine (2 Chế độ tìm kiếm):**
+  - **Chế độ 1 (Từ khóa):** Tra cứu tức thì tên phim, diễn viên, đạo diễn với Debounce & Autocomplete.
+  - **Chế độ 2 (AI Semantic - Google Gemini):** Tìm theo cảm xúc, cốt truyện miêu tả bằng ngôn ngữ tự nhiên (Ví dụ: *"Phim du hành thời gian có plot twist bất ngờ"*).
+- 🛡️ **Private Cinema (Local-First):** Lược bỏ hoàn toàn bình luận mạng xã hội rườm rà. Lịch sử xem dở (từng giây) và danh sách yêu thích được lưu trực tiếp trên trình duyệt, không cần đăng ký tài khoản.
+- 📱 **Progressive Web App (PWA):** Tương thích mọi trình duyệt (Safari iOS, Chrome, Edge, Android, Smart TV), có thể bấm "Thêm vào màn hình chính" để mở full màn hình không viền như native app.
+
+---
+
+## ⌨️ Phím Tắt Điều Khiển CinePlayer Pro
+
+| Phím tắt | Chức năng |
+| :--- | :--- |
+| `Space` hoặc `K` | Phát / Tạm dừng video |
+| `F` | Toàn màn hình (Fullscreen) |
+| `J` / `Mũi tên trái` | Tua lùi 10 giây |
+| `L` / `Mũi tên phải` | Tua tiến 10 giây |
+| `M` | Tắt / Bật tiếng (Mute) |
+| `B` | Bật / Tắt Audio Booster (Kích âm lượng 180%) |
+| `G` | Bật / Tắt Hào quang Ambient Glow |
+
+---
+
+## 🚀 Hướng Dẫn Chạy Cục Bộ (Local Development)
 
 ```bash
+# 1. Cài đặt dependencies (nếu chưa có)
+npm install
+
+# 2. Tạo file biến môi trường .env.local (tùy chọn)
+cp .env.example .env.local
+# Điền GEMINI_API_KEY nếu muốn kích hoạt trí tuệ nhân tạo Gemini
+
+# 3. Chạy server phát triển
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở trình duyệt truy cập: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Hướng Dẫn Deploy Lên Vercel (1-Click)
 
-## Learn More
+### Cách 1: Qua giao diện Vercel Dashboard (Khuyên dùng)
+1. Đẩy mã nguồn lên tài khoản GitHub/GitLab của bạn:
+   ```bash
+   git add .
+   git commit -m "feat: complete NovaFlix private cinema streaming platform"
+   git branch -M main
+   git remote add origin https://github.com/<username>/<repo-name>.git
+   git push -u origin main
+   ```
+2. Truy cập [vercel.com](https://vercel.com) $\rightarrow$ **Add New Project** $\rightarrow$ Chọn repository vừa tạo.
+3. Thêm biến môi trường:
+   - `GEMINI_API_KEY`: Key lấy từ [Google AI Studio](https://aistudio.google.com).
+4. Nhấn **Deploy**. Sau ~1 phút, bạn sẽ nhận được link web dạng `https://ten-du-an.vercel.app` mở được trên mọi thiết bị!
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Cách 2: Deploy trực tiếp bằng Vercel CLI
+```bash
+npm i -g vercel
+vercel
+```
