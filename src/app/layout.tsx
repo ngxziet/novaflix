@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import SearchModal from "@/components/search/SearchModal";
+import MobileBottomBar from "@/components/layout/MobileBottomBar";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -28,10 +30,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className="dark">
-      <body className="bg-[#07080b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white">
+      <body className="bg-[#07080b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white pb-16 md:pb-0">
         <Navbar />
         <main className="flex-1 w-full pt-20 sm:pt-24 min-h-[calc(100vh-140px)]">{children}</main>
         <Footer />
+        <SearchModal />
+        <MobileBottomBar />
       </body>
     </html>
   );

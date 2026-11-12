@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Film, Search, Bookmark, Sparkles, Tv, Clapperboard, MonitorPlay, Ghost, Globe } from "lucide-react";
+import { Film, Search, Bookmark, Sparkles, Tv, Clapperboard, MonitorPlay, Compass } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -17,14 +17,18 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const handleOpenSearch = (mode: "keyword" | "ai" = "keyword") => {
+    window.dispatchEvent(new CustomEvent("open-search-modal", { detail: { mode } }));
+  };
+
   const navLinks = [
     { href: "/", label: "Trang Chủ", icon: Film },
     { href: "/movies", label: "Phim Lẻ", icon: Clapperboard },
     { href: "/series", label: "Phim Bộ", icon: Tv },
     { href: "/anime", label: "Hoạt Hình", icon: MonitorPlay },
-    { href: "/the-loai/kinh-di", label: "Kinh Dị", icon: Ghost },
-    { href: "/quoc-gia/han-quoc", label: "Phim Hàn", icon: Globe },
-    { href: "/quoc-gia/trung-quoc", label: "Phim Trung", icon: Globe },
+    { href: "/the-loai/kinh-di", label: "Kinh Dị", icon: Compass },
+    { href: "/quoc-gia/han-quoc", label: "Phim Hàn", icon: Compass },
+    { href: "/quoc-gia/trung-quoc", label: "Phim Trung", icon: Compass },
     { href: "/my-vault", label: "Kho Phim", icon: Bookmark },
   ];
 
@@ -40,8 +44,8 @@ export default function Navbar() {
         {/* Brand Logo */}
         <div className="flex items-center gap-6 lg:gap-8 flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-red-600/30 group-hover:scale-105 transition-transform flex-shrink-0">
-              <Film className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30 group-hover:scale-105 transition-transform flex-shrink-0">
+              <Film className="w-4 h-4 text-white" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg sm:text-xl font-black tracking-wider text-white flex items-center gap-1.5 leading-none">
@@ -50,12 +54,12 @@ export default function Navbar() {
                   1080p
                 </span>
               </span>
-              <span className="text-[9px] text-zinc-400 tracking-wider font-mono">PRIVATE CINEMA</span>
+              <span className="text-[8px] text-zinc-400 tracking-wider font-mono">CINEMA</span>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden xl:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
@@ -77,43 +81,26 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Medium screens nav links (compact) */}
-        <nav className="hidden md:flex xl:hidden items-center gap-1 overflow-x-auto no-scrollbar py-1">
-          {navLinks.slice(0, 5).map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive ? "text-white bg-white/15" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Action Controls: Dual Search Buttons */}
+        {/* Action Controls: Modal Search Triggers (Không chuyển trang) */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <Link
-            href="/search?mode=ai"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-pink-600/30 border border-purple-500/40 text-purple-200 hover:text-white hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/20 transition-all"
-            title="Tìm kiếm bằng trí tuệ nhân tạo Gemini"
+          <button
+            onClick={() => handleOpenSearch("ai")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 border border-purple-500/40 text-purple-200 hover:text-white hover:bg-purple-600/40 hover:border-purple-400 transition-all cursor-pointer"
+            title="Tìm kiếm bằng AI Gemini (Ctrl+K)"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden sm:inline">AI Vibe Search</span>
-          </Link>
+          </button>
 
-          <Link
-            href="/search"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition-all"
-            title="Tìm kiếm từ khóa"
+          <button
+            onClick={() => handleOpenSearch("keyword")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition-all cursor-pointer"
+            title="Tìm kiếm nhanh từ khóa (Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Tìm kiếm</span>
-          </Link>
+            <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-white/10">⌘K</kbd>
+          </button>
         </div>
       </div>
     </header>

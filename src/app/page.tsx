@@ -9,7 +9,7 @@ import MediaRow from "@/components/home/MediaRow";
 import ContinueWatchingRow from "@/components/home/ContinueWatchingRow";
 import { FALLBACK_BLOCKBUSTERS } from "@/lib/constants";
 
-export const revalidate = 1800; // Cập nhật lại dữ liệu mỗi 30 phút
+export const revalidate = 1800;
 
 export default async function HomePage() {
   const [trending, singleMovies, horrorMovies, koreanMovies, chineseMovies, animeMovies] =
@@ -25,64 +25,64 @@ export default async function HomePage() {
   const heroMovie = trending[0] || FALLBACK_BLOCKBUSTERS[0];
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-16">
       {/* Hero Spotlight Header */}
       <HeroSpotlight movie={heroMovie} />
 
       {/* Continue Watching (Local Storage First) */}
       <ContinueWatchingRow />
 
-      {/* Row: Phim Mới Cập Nhật Chuẩn 1080p */}
+      {/* Row: Phim Mới Cập Nhật */}
       <MediaRow
-        title="Phim Mới Cập Nhật (1080p FHD)"
-        subtitle="Các tác phẩm vừa được cập nhật bản nét nhất"
+        title="Phim Mới Cập Nhật"
+        subtitle="Bản phát hành chuẩn 1080p Full HD nét nhất"
         movies={trending.slice(1, 15)}
         viewAllHref="/movies"
       />
 
-      {/* Row: Phim Kinh Dị Rùng Rợn */}
+      {/* Row: Phim Kinh Dị & Giật Gân */}
       <MediaRow
-        title="👻 Ám Ảnh & Kinh Dị Rùng Rợn"
-        subtitle="Hồi hộp, thót tim với những bí ẩn kinh hoàng"
+        title="Phim Kinh Dị & Giật Gân"
+        subtitle="Hồi hộp, bí ẩn và căng thẳng tâm lý"
         movies={horrorMovies.slice(0, 14)}
         viewAllHref="/the-loai/kinh-di"
       />
 
-      {/* Row: Phim Hàn Quốc K-Drama */}
+      {/* Row: Điện Ảnh Hàn Quốc */}
       <MediaRow
-        title="🌸 Phim Hàn Quốc Đặc Sắc (K-Drama)"
-        subtitle="Tình cảm lãng mạn & kịch tính đỉnh cao từ xứ sở Kim Chi"
+        title="Điện Ảnh Hàn Quốc"
+        subtitle="Phim truyền hình & kịch tính Hàn Quốc mới nhất"
         movies={koreanMovies.slice(0, 14)}
         viewAllHref="/quoc-gia/han-quoc"
       />
 
-      {/* Row: Phim Trung Quốc & Cổ Trang */}
+      {/* Row: Phim Cổ Trang & Trung Quốc */}
       <MediaRow
-        title="🏮 Phim Trung Quốc & Cổ Trang"
-        subtitle="Kiếm hiệp, tiên hiệp và chuyện tình cổ trang huyền ảo"
+        title="Phim Truyền Hình Trung Quốc"
+        subtitle="Cổ trang, kiếm hiệp và tình cảm truyền hình"
         movies={chineseMovies.slice(0, 14)}
         viewAllHref="/quoc-gia/trung-quoc"
       />
 
-      {/* Row: Tuyển Tập Bom Tấn Điển Hình */}
+      {/* Row: Tuyển Tập Điển Hình 4K */}
       <MediaRow
-        title="🎬 Kiệt Tác Điện Ảnh Tuyển Chọn"
-        subtitle="Hình ảnh sắc nét 4K & âm thanh sống động"
+        title="Kiệt Tác Điện Ảnh 4K"
+        subtitle="Hình ảnh sắc nét tối đa và âm thanh nguyên bản"
         movies={FALLBACK_BLOCKBUSTERS}
       />
 
-      {/* Row: Phim Lẻ Đỉnh Cao */}
+      {/* Row: Phim Lẻ Chiếu Rạp */}
       <MediaRow
-        title="🍿 Điện Ảnh Chiếu Rạp Mới"
-        subtitle="Trọn bộ phim lẻ chuẩn rạp không quảng cáo"
+        title="Phim Lẻ Chiếu Rạp"
+        subtitle="Trọn bộ phim lẻ phát hành rạp không quảng cáo"
         movies={singleMovies.slice(0, 14)}
         viewAllHref="/movies"
       />
 
       {/* Row: Hoạt Hình & Anime */}
       <MediaRow
-        title="🎨 Hoạt Hình & Anime Nhật Bản"
-        subtitle="Thế giới đồ họa đỉnh cao với màu sắc rực rỡ"
+        title="Hoạt Hình & Anime"
+        subtitle="Tuyển tập hoạt hình 3D & anime chất lượng cao"
         movies={animeMovies.slice(0, 14)}
         viewAllHref="/anime"
       />
