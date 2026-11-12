@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Film, Search, Bookmark, Sparkles, Tv, Clapperboard, MonitorPlay, Compass } from "lucide-react";
+import { Film, Search, Bookmark, Tv, Clapperboard, MonitorPlay, Compass } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -17,8 +17,8 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleOpenSearch = (mode: "keyword" | "ai" = "keyword") => {
-    window.dispatchEvent(new CustomEvent("open-search-modal", { detail: { mode } }));
+  const handleOpenSearch = () => {
+    window.dispatchEvent(new CustomEvent("open-search-modal"));
   };
 
   const navLinks = [
@@ -81,24 +81,15 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Action Controls: Modal Search Triggers (Không chuyển trang) */}
+        {/* Action Control: Clean Spotlight Search Button */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <button
-            onClick={() => handleOpenSearch("ai")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600/20 border border-purple-500/40 text-purple-200 hover:text-white hover:bg-purple-600/40 hover:border-purple-400 transition-all cursor-pointer"
-            title="Tìm kiếm bằng AI Gemini (Ctrl+K)"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden sm:inline">AI Vibe Search</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenSearch("keyword")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition-all cursor-pointer"
-            title="Tìm kiếm nhanh từ khóa (Ctrl+K)"
+            onClick={handleOpenSearch}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+            title="Tìm kiếm phim (Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">Tìm kiếm</span>
+            <span className="hidden sm:inline">Tìm kiếm phim...</span>
             <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-white/10">⌘K</kbd>
           </button>
         </div>
