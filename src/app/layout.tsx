@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="vi" className="dark">
       <body className="bg-[#07080b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white">
         <Navbar />
-        <main className="flex-1 w-full overflow-hidden">{children}</main>
+        <main className="flex-1 w-full pt-20 sm:pt-24 min-h-[calc(100vh-140px)]">{children}</main>
         <Footer />
       </body>
     </html>

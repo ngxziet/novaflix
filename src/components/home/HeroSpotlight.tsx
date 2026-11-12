@@ -30,7 +30,7 @@ export default function HeroSpotlight({ movie }: HeroSpotlightProps) {
   };
 
   return (
-    <div className="relative w-full min-h-[580px] sm:h-[80vh] sm:min-h-[640px] max-h-[850px] overflow-hidden flex flex-col justify-end pt-24 pb-14 sm:pb-20">
+    <div className="relative w-full -mt-20 sm:-mt-24 min-h-[580px] sm:h-[85vh] sm:min-h-[660px] max-h-[880px] overflow-hidden flex flex-col justify-end pt-32 pb-14 sm:pb-20">
       {/* High-res Backdrop with Fallback */}
       <Image
         src={backdropSrc}

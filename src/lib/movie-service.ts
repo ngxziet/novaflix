@@ -66,13 +66,45 @@ export async function getMoviesByType(type: "phim-le" | "phim-bo" | "hoat-hinh",
     const res = await fetch(`${PHIMAPI_BASE}/v1/api/danh-sach/${type}?page=${page}&limit=24`, {
       next: { revalidate: 3600 },
     });
-    if (!res.ok) throw new Error("Failed to fetch movies by type");
+    if (!res.ok) throw new Error(`Failed to fetch ${type}`);
     const data = await res.json();
     if (data?.data?.items && Array.isArray(data.data.items)) {
       return data.data.items.map(mapToMovieItem);
     }
   } catch (error) {
     console.warn(`Failed to fetch ${type}:`, error);
+  }
+  return FALLBACK_BLOCKBUSTERS;
+}
+
+export async function getMoviesByGenre(genreSlug: string, page = 1): Promise<MovieItem[]> {
+  try {
+    const res = await fetch(`${PHIMAPI_BASE}/v1/api/the-loai/${genreSlug}?page=${page}&limit=24`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) throw new Error(`Failed to fetch genre ${genreSlug}`);
+    const data = await res.json();
+    if (data?.data?.items && Array.isArray(data.data.items)) {
+      return data.data.items.map(mapToMovieItem);
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch genre ${genreSlug}:`, error);
+  }
+  return FALLBACK_BLOCKBUSTERS;
+}
+
+export async function getMoviesByCountry(countrySlug: string, page = 1): Promise<MovieItem[]> {
+  try {
+    const res = await fetch(`${PHIMAPI_BASE}/v1/api/quoc-gia/${countrySlug}?page=${page}&limit=24`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) throw new Error(`Failed to fetch country ${countrySlug}`);
+    const data = await res.json();
+    if (data?.data?.items && Array.isArray(data.data.items)) {
+      return data.data.items.map(mapToMovieItem);
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch country ${countrySlug}:`, error);
   }
   return FALLBACK_BLOCKBUSTERS;
 }
@@ -142,7 +174,6 @@ export async function getMovieDetail(slug: string): Promise<MovieDetail | null> 
       }
     }
 
-    // Nếu không có tập nào từ API, cấp nguồn stream 1080p demo mượt mà
     if (episodesGrouped.length === 0) {
       episodesGrouped.push({
         serverName: "Master 1080p Cinema Server",
@@ -158,7 +189,6 @@ export async function getMovieDetail(slug: string): Promise<MovieDetail | null> 
       });
     }
 
-    // Xử lý danh sách diễn viên
     const cast = Array.isArray(movieRaw.actor)
       ? movieRaw.actor.filter(Boolean).map((actorName: string, i: number) => ({
           id: i,
