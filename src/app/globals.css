@@ -72,3 +72,48 @@ body {
 img, video {
   max-width: 100%;
 }
+
+/* Also works when the browser does not expose requestFullscreen. */
+.cine-player-surface {
+  container-type: inline-size;
+}
+
+.cine-player-settings {
+  max-height: calc(56.25cqw - 4rem);
+}
+
+.cine-player-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.cine-player-fullscreen .cine-player-settings {
+  max-height: calc(100dvh - 5rem);
+}
+
+.cine-player::backdrop {
+  background: black;
+}
+
+/* Some mobile browsers reject orientation.lock, even in fullscreen. */
+@media (orientation: portrait) and (pointer: coarse) {
+  .cine-player-fullscreen .cine-player-surface {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100dvh;
+    height: 100vw;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  .cine-player-fullscreen .cine-player-settings {
+    max-height: calc(100vw - 5rem);
+  }
+}

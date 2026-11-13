@@ -35,7 +35,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
   return (
     <div className="min-h-screen pb-20 pt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Player Section with Ambient Glow */}
-      <div className="relative z-20">
+      <div className="relative">
         <CinePlayer
           movieSlug={movie.slug}
           movieTitle={movie.title}
