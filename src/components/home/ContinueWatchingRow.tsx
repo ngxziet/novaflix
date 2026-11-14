@@ -33,49 +33,52 @@ export default function ContinueWatchingRow() {
         className="flex items-stretch gap-4 overflow-x-auto pb-4 pt-1"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {history.map((item) => (
-          <div
-            key={item.slug}
-            className="w-[240px] sm:w-[280px] flex-shrink-0 group rounded-xl overflow-hidden bg-zinc-900/80 border border-white/10 hover:border-red-500/40 transition-all flex flex-col justify-between"
-          >
-            <Link href={`/watch/${item.slug}`} className="relative aspect-video w-full block overflow-hidden">
-              <Image
-                src={item.backdropUrl || item.posterUrl}
-                alt={item.title}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-4 h-4 fill-white ml-0.5" />
-                </div>
-              </div>
-
-              {/* Progress Bar at the bottom of the thumbnail */}
-              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60">
-                <div
-                  className="h-full bg-red-600"
-                  style={{ width: `${item.percent}%` }}
+        {history.map((item) => {
+          const watchUrl = `/watch/${item.slug}${item.episodeSlug ? `?ep=${item.episodeSlug}` : ""}`;
+          return (
+            <div
+              key={item.slug}
+              className="w-[240px] sm:w-[280px] flex-shrink-0 group rounded-xl overflow-hidden bg-zinc-900/80 border border-white/10 hover:border-red-500/40 transition-all flex flex-col justify-between"
+            >
+              <Link href={watchUrl} className="relative aspect-video w-full block overflow-hidden">
+                <Image
+                  src={item.backdropUrl || item.posterUrl}
+                  alt={item.title}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-              </div>
-            </Link>
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <Play className="w-4 h-4 fill-white ml-0.5" />
+                  </div>
+                </div>
 
-            <div className="p-3">
-              <Link href={`/watch/${item.slug}`}>
-                <h3 className="font-bold text-sm text-zinc-100 line-clamp-1 group-hover:text-red-400 transition-colors">
-                  {item.title}
-                </h3>
+                {/* Progress Bar at the bottom of the thumbnail */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60">
+                  <div
+                    className="h-full bg-red-600"
+                    style={{ width: `${item.percent}%` }}
+                  />
+                </div>
               </Link>
 
-              <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-400">
-                <span className="text-red-400 font-medium">{item.episodeName || "Bản 1080p"}</span>
-                <span>
-                  {formatSecondsToTime(item.progressSeconds)} / {formatSecondsToTime(item.durationSeconds)}
-                </span>
+              <div className="p-3">
+                <Link href={watchUrl}>
+                  <h3 className="font-bold text-sm text-zinc-100 line-clamp-1 group-hover:text-red-400 transition-colors">
+                    {item.title}
+                  </h3>
+                </Link>
+
+                <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-400">
+                  <span className="text-red-400 font-medium">{item.episodeName || "Bản 1080p"}</span>
+                  <span>
+                    {formatSecondsToTime(item.progressSeconds)} / {formatSecondsToTime(item.durationSeconds)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

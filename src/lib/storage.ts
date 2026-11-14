@@ -1,6 +1,7 @@
 import { WatchHistoryItem, FavoriteMovieItem } from "@/types/movie";
 
 const HISTORY_KEY = "novaflix_watch_history";
+const EPISODES_PROGRESS_KEY = "novaflix_episodes_progress";
 const FAVORITES_KEY = "novaflix_favorites";
 const SETTINGS_KEY = "novaflix_player_settings";
 
@@ -24,7 +25,33 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   subtitleOffset: 0,
 };
 
-// --- QUẢN LÝ LỊCH SỬ XEM DỞ ---
+// --- QUẢN LÝ TIẾN TRÌNH XEM THEO TỪNG TẬP (PER-EPISODE) ---
+function getAllEpisodeProgress(): Record<string, { progressSeconds: number; durationSeconds: number; updatedAt: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(EPISODES_PROGRESS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getEpisodeProgress(movieSlug: string, episodeSlug?: string): number {
+  if (typeof window === "undefined") return 0;
+  const epKey = episodeSlug || "default";
+  const fullKey = `${movieSlug}:${epKey}`;
+  const all = getAllEpisodeProgress();
+  const data = all[fullKey];
+  if (!data) return 0;
+
+  // Nếu xem đến sát hết (còn dưới 30s hoặc > 95%), coi như đã xem xong và bắt đầu lại từ đầu
+  if (data.durationSeconds > 0 && data.progressSeconds >= data.durationSeconds - 30) {
+    return 0;
+  }
+  return data.progressSeconds > 10 ? data.progressSeconds : 0;
+}
+
+// --- QUẢN LÝ LỊCH SỬ XEM DỞ TOÀN BỘ PHIM ---
 export function getWatchHistory(): WatchHistoryItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -38,6 +65,18 @@ export function getWatchHistory(): WatchHistoryItem[] {
 export function saveWatchProgress(item: Omit<WatchHistoryItem, "updatedAt" | "percent">) {
   if (typeof window === "undefined") return;
   try {
+    // 1. Lưu tiến độ riêng cho chính tập phim này
+    const epKey = item.episodeSlug || "default";
+    const fullKey = `${item.slug}:${epKey}`;
+    const allEp = getAllEpisodeProgress();
+    allEp[fullKey] = {
+      progressSeconds: item.progressSeconds,
+      durationSeconds: item.durationSeconds,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(EPISODES_PROGRESS_KEY, JSON.stringify(allEp));
+
+    // 2. Cập nhật vào danh sách lịch sử phim gần nhất
     const history = getWatchHistory().filter((h) => h.slug !== item.slug);
     const percent = item.durationSeconds > 0
       ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
@@ -49,7 +88,6 @@ export function saveWatchProgress(item: Omit<WatchHistoryItem, "updatedAt" | "pe
       updatedAt: Date.now(),
     };
 
-    // Giữ tối đa 30 phim gần nhất
     const newHistory = [updated, ...history].slice(0, 30);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
   } catch (err) {

@@ -15,13 +15,14 @@ import {
   Sliders,
   Upload,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { Episode } from "@/types/movie";
 import {
   getPlayerSettings,
   savePlayerSettings,
   saveWatchProgress,
-  getMovieProgress,
+  getEpisodeProgress,
 } from "@/lib/storage";
 import { formatSecondsToTime } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ export default function CinePlayer({
 
   // Player State
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -77,7 +79,7 @@ export default function CinePlayer({
     setPlaybackSpeed(s.playbackSpeed);
   }, []);
 
-  // Thiết lập luồng phát Video (HLS.js tối ưu chống giật)
+  // Thiết lập luồng phát Video (HLS.js tối ưu chống giật & khôi phục đúng tập)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -85,14 +87,28 @@ export default function CinePlayer({
     let hls: Hls | null = null;
     const streamUrl = episode.streamUrl;
 
+    // Reset thời gian hiển thị về 0 cho tập mới
+    setCurrentTime(0);
+
+    const restoreProgress = () => {
+      const savedProg = getEpisodeProgress(movieSlug, episode.slug);
+      if (savedProg > 10) {
+        video.currentTime = savedProg;
+        setCurrentTime(savedProg);
+      } else {
+        video.currentTime = 0;
+        setCurrentTime(0);
+      }
+    };
+
     if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: false, // Tắt low-latency để tăng dung lượng buffer VOD chống giật
+        lowLatencyMode: false,
         backBufferLength: 90,
-        maxBufferLength: 60, // Tải trước 60 giây video để chạy mượt
+        maxBufferLength: 60,
         maxMaxBufferLength: 300,
-        maxBufferSize: 60 * 1000 * 1000, // 60MB bộ nhớ đệm
+        maxBufferSize: 60 * 1000 * 1000,
         maxBufferHole: 0.5,
         highBufferWatchdogPeriod: 2,
         nudgeOffset: 0.1,
@@ -103,10 +119,7 @@ export default function CinePlayer({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const savedProg = getMovieProgress(movieSlug);
-        if (savedProg && savedProg.progressSeconds > 10 && savedProg.progressSeconds < (savedProg.durationSeconds - 30)) {
-          video.currentTime = savedProg.progressSeconds;
-        }
+        restoreProgress();
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -126,12 +139,10 @@ export default function CinePlayer({
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = streamUrl;
-      const savedProg = getMovieProgress(movieSlug);
-      if (savedProg && savedProg.progressSeconds > 10) {
-        video.currentTime = savedProg.progressSeconds;
-      }
+      video.addEventListener("loadedmetadata", restoreProgress, { once: true });
     } else {
       video.src = streamUrl;
+      video.addEventListener("loadedmetadata", restoreProgress, { once: true });
     }
 
     return () => {
@@ -139,71 +150,76 @@ export default function CinePlayer({
         hls.destroy();
       }
     };
-  }, [episode.streamUrl, movieSlug]);
+  }, [episode.streamUrl, episode.slug, movieSlug]);
 
-  // Audio Booster (Web Audio API)
+  // Bộ khuếch đại âm thanh Web Audio API (Boost 180%)
   const initAudioBooster = useCallback(() => {
     if (audioConnectedRef.current || !videoRef.current) return;
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-
-      const ctx = new AudioContextClass();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
       const source = ctx.createMediaElementSource(videoRef.current);
-      const gainNode = ctx.createGain();
+      const gain = ctx.createGain();
 
-      gainNode.gain.value = audioBoost ? 1.8 : 1.0;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gain.gain.value = audioBoost ? 1.8 : 1.0;
+      source.connect(gain);
+      gain.connect(ctx.destination);
 
       audioCtxRef.current = ctx;
-      gainNodeRef.current = gainNode;
+      gainNodeRef.current = gain;
       audioConnectedRef.current = true;
-    } catch (err) {
-      console.warn("Audio Context init warning:", err);
+    } catch {
+      // Bỏ qua nếu trình duyệt chặn tự động chạy AudioContext
     }
   }, [audioBoost]);
 
   const toggleAudioBoost = () => {
     initAudioBooster();
-    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume();
+    const next = !audioBoost;
+    setAudioBoost(next);
+    savePlayerSettings({ audioBoost: next });
+
+    if (gainNodeRef.current && audioCtxRef.current) {
+      if (audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume();
+      }
+      gainNodeRef.current.gain.setTargetAtTime(
+        next ? 1.8 : 1.0,
+        audioCtxRef.current.currentTime,
+        0.05
+      );
     }
-    const nextState = !audioBoost;
-    setAudioBoost(nextState);
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = nextState ? 1.8 : 1.0;
-    }
-    savePlayerSettings({ audioBoost: nextState });
   };
 
-  // Ambient Glow Canvas Engine: Tối ưu với chu kỳ 600ms (giảm 85% tải GPU)
+  // Trích xuất màu sắc động cho Ambient Glow (Canvas 32x18 throttled 600ms)
   useEffect(() => {
     if (!ambientGlow) return;
-    const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
 
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const ctx = canvas.getContext("2d", { willReadFrequently: false });
     if (!ctx) return;
 
-    let intervalId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout | null = null;
 
-    const captureColor = () => {
-      if (!video.paused && !video.ended && video.readyState >= 2) {
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        } catch {
-          // Bỏ qua nếu cross-origin CORS chặn canvas
-        }
+    const updateGlow = () => {
+      if (video.paused || video.ended || video.readyState < 2) return;
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      } catch {
+        // Tránh lỗi CORS từ remote m3u8 nếu có
       }
     };
 
-    intervalId = setInterval(captureColor, 600);
-    return () => clearInterval(intervalId);
+    intervalId = setInterval(updateGlow, 600);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [ambientGlow]);
 
-  // Tự động lưu tiến độ xem
+  // Lưu tiến độ xem vào LocalStorage (Debounce 3 giây)
   useEffect(() => {
     if (currentTime > 5 && duration > 0) {
       const timer = setTimeout(() => {
@@ -222,17 +238,18 @@ export default function CinePlayer({
     }
   }, [currentTime, duration, movieSlug, movieTitle, posterUrl, episode.name, episode.slug]);
 
-  // Playback state follows media events, including rejected play requests.
-  const togglePlay = () => {
+  // Điều khiển Play/Pause đồng bộ với video element
+  const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     initAudioBooster();
+
     if (video.paused) {
       void video.play().catch(() => setShowControls(true));
     } else {
       video.pause();
     }
-  };
+  }, [initAudioBooster]);
 
   const skipTime = (amount: number) => {
     if (!videoRef.current) return;
@@ -256,7 +273,7 @@ export default function CinePlayer({
       await container.requestFullscreen();
       setFullscreenMode("native");
     } catch {
-      // Keep the custom controls on browsers without the Fullscreen API.
+      // Trình duyệt không hỗ trợ requestFullscreen (iOS Safari)
       setFullscreenMode("fallback");
     }
   };
@@ -281,7 +298,7 @@ export default function CinePlayer({
         if (cancelled) orientation.unlock();
         else locked = true;
       }).catch(() => {
-        // Portrait touch screens use the CSS landscape fallback below.
+        // Fallback xoay ngang bằng CSS
       });
     }
     const previousOverflow = document.body.style.overflow;
@@ -298,16 +315,19 @@ export default function CinePlayer({
     };
   }, [fullscreenMode, isFullscreen]);
 
+  // Phím tắt bàn phím chuẩn máy tính (Chống giật / chống kích hoạt 2 lần)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) return;
 
+      if (e.code === "Space" || e.key === " " || e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePlay();
+        return;
+      }
+
       switch (e.key.toLowerCase()) {
-        case " ":
-        case "k":
-          e.preventDefault();
-          togglePlay();
-          break;
         case "f":
           e.preventDefault();
           toggleFullscreen();
@@ -345,7 +365,7 @@ export default function CinePlayer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, toggleFullscreen]);
+  }, [togglePlay]);
 
   const revealControls = () => {
     setShowControls(true);
@@ -361,9 +381,23 @@ export default function CinePlayer({
   }, [showControls, isPlaying, showSettings, controlsActivity]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    // Touch-generated mouse events must not reveal a hidden button before its tap.
     if (event.pointerType !== "mouse") return;
     revealControls();
+  };
+
+  // Click vào màn hình: Desktop click thì toggle Play/Pause, Mobile tap thì hiện/ẩn controls
+  const handleContainerClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest(".controls-interactive")) {
+      return;
+    }
+
+    const isTouch = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    if (isTouch) {
+      setShowControls((prev) => !prev);
+    } else {
+      togglePlay();
+      revealControls();
+    }
   };
 
   const handleSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,12 +411,14 @@ export default function CinePlayer({
     <div
       ref={containerRef}
       onPointerMove={handlePointerMove}
-      onClick={revealControls}
+      onClick={handleContainerClick}
       onFocusCapture={revealControls}
-      className={`cine-player relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl group select-none ${isFullscreen ? "cine-player-fullscreen" : ""}`}
+      className={`cine-player relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl group select-none cursor-pointer ${
+        isFullscreen ? "cine-player-fullscreen" : ""
+      }`}
     >
       <div className="cine-player-surface relative w-full h-full">
-        {/* Ambient Glow Canvas Layer (Transition 600ms siêu mượt) */}
+        {/* Ambient Glow Canvas Layer */}
         {ambientGlow && (
           <canvas
             ref={canvasRef}
@@ -396,10 +432,17 @@ export default function CinePlayer({
         <video
           ref={videoRef}
           playsInline
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
           poster={posterUrl}
-          onClick={revealControls}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => {
+            setIsPlaying(false);
+            setShowControls(true);
+          }}
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => {
+            setIsPlaying(true);
+            setIsBuffering(false);
+          }}
           onTimeUpdate={() => {
             if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
           }}
@@ -410,7 +453,7 @@ export default function CinePlayer({
             setIsPlaying(false);
             if (onNextEpisode) onNextEpisode();
           }}
-          className="relative w-full h-full object-contain z-10 cursor-pointer"
+          className="relative w-full h-full object-contain z-10"
         >
           {customSubtitleUrl && (
             <track
@@ -422,10 +465,17 @@ export default function CinePlayer({
           )}
         </video>
 
+        {/* Buffering Spinner */}
+        {isBuffering && (
+          <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
+            <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
+          </div>
+        )}
+
         {/* Top Bar Info */}
         <div
-          className={`absolute top-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-b from-black/80 via-black/30 to-transparent flex items-center justify-between transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          className={`controls-interactive absolute top-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-b from-black/80 via-black/30 to-transparent flex items-center justify-between transition-opacity duration-300 ${
+            showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
         >
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -453,30 +503,29 @@ export default function CinePlayer({
           </div>
         </div>
 
-        {/* Center Play Indicator */}
+        {/* Center Big Play Button (Khi dừng phát hoặc trên desktop) */}
         {!isPlaying && (
           <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/30 pointer-events-none">
             <button
               type="button"
-              onClick={togglePlay}
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
               aria-label="Phát video"
-              className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-2xl shadow-red-600/50 hover:scale-110 transition-transform pointer-events-auto"
+              className="controls-interactive w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-2xl shadow-red-600/50 hover:scale-110 active:scale-95 transition-transform pointer-events-auto cursor-pointer"
             >
-              <Play className="w-8 h-8 fill-white ml-1" />
+              <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" />
             </button>
           </div>
         )}
 
         {/* Bottom Controls Bar */}
         <div
-          className={`absolute bottom-0 left-0 right-0 px-2 py-1 sm:p-6 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col gap-2 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          className={`controls-interactive absolute bottom-0 left-0 right-0 px-2 py-2 sm:p-6 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col gap-2 transition-opacity duration-300 ${
+            showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
-          inert={!showControls}
-          onClick={(event) => {
-            event.stopPropagation();
-            revealControls();
-          }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Scrubber Progress Bar */}
           <div className="relative group/scrubber cursor-pointer flex items-center h-4">
@@ -497,10 +546,10 @@ export default function CinePlayer({
 
           {/* Buttons Row */}
           <div className="flex items-center justify-between text-white text-sm">
-            <div className="flex min-w-0 items-center gap-0 sm:gap-4">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-4">
               <button
                 onClick={togglePlay}
-                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
               >
                 {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
@@ -508,7 +557,7 @@ export default function CinePlayer({
 
               <button
                 onClick={() => skipTime(-10)}
-                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                 title="Lùi 10s (J)"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -516,7 +565,7 @@ export default function CinePlayer({
 
               <button
                 onClick={() => skipTime(10)}
-                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                 title="Tiến 10s (L)"
               >
                 <RotateCw className="w-4 h-4" />
@@ -528,7 +577,7 @@ export default function CinePlayer({
                     setIsMuted(!isMuted);
                     if (videoRef.current) videoRef.current.muted = !isMuted;
                   }}
-                  className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                  className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                   title="Âm lượng (M)"
                 >
                   {isMuted || volume === 0 ? (
@@ -561,10 +610,10 @@ export default function CinePlayer({
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-0 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-3">
               <button
                 onClick={toggleAudioBoost}
-                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   audioBoost
                     ? "bg-amber-500 text-black shadow-lg shadow-amber-500/30"
                     : "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300"
@@ -580,7 +629,7 @@ export default function CinePlayer({
                   setAmbientGlow(!ambientGlow);
                   savePlayerSettings({ ambientGlow: !ambientGlow });
                 }}
-                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   ambientGlow
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40"
                     : "bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400"
@@ -594,7 +643,7 @@ export default function CinePlayer({
               <div className="relative">
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                  className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                   title="Tùy chỉnh tốc độ & phụ đề"
                   aria-expanded={showSettings}
                 >
@@ -604,18 +653,35 @@ export default function CinePlayer({
                 {showSettings && (
                   <div className="cine-player-settings absolute bottom-10 -right-9 w-60 overflow-y-auto sm:right-0 sm:w-64 p-3 sm:p-4 rounded-xl bg-zinc-950/95 border border-white/10 shadow-2xl backdrop-blur-xl z-50 text-xs space-y-4">
                     <div className="flex flex-wrap gap-2 sm:hidden">
-                      <button onClick={() => {
-                        setIsMuted(!isMuted);
-                        if (videoRef.current) videoRef.current.muted = !isMuted;
-                      }} className="rounded bg-zinc-800 px-2 py-2" aria-pressed={isMuted}>
+                      <button
+                        onClick={() => {
+                          setIsMuted(!isMuted);
+                          if (videoRef.current) videoRef.current.muted = !isMuted;
+                        }}
+                        className="rounded bg-zinc-800 px-2 py-2"
+                        aria-pressed={isMuted}
+                      >
                         {isMuted ? "Bật tiếng" : "Tắt tiếng"}
                       </button>
-                      <button onClick={toggleAudioBoost} aria-pressed={audioBoost} className="rounded bg-zinc-800 px-2 py-2">Kích âm</button>
-                      <button onClick={() => {
-                        setAmbientGlow(!ambientGlow);
-                        savePlayerSettings({ ambientGlow: !ambientGlow });
-                      }} aria-pressed={ambientGlow} className="rounded bg-zinc-800 px-2 py-2">Hào quang</button>
+                      <button
+                        onClick={toggleAudioBoost}
+                        aria-pressed={audioBoost}
+                        className="rounded bg-zinc-800 px-2 py-2"
+                      >
+                        Kích âm
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAmbientGlow(!ambientGlow);
+                          savePlayerSettings({ ambientGlow: !ambientGlow });
+                        }}
+                        aria-pressed={ambientGlow}
+                        className="rounded bg-zinc-800 px-2 py-2"
+                      >
+                        Hào quang
+                      </button>
                     </div>
+
                     <div>
                       <span className="font-bold text-zinc-200 block mb-2">Tốc độ phát:</span>
                       <div className="grid grid-cols-4 gap-1.5">
@@ -627,7 +693,7 @@ export default function CinePlayer({
                               if (videoRef.current) videoRef.current.playbackRate = speed;
                               savePlayerSettings({ playbackSpeed: speed });
                             }}
-                            className={`py-1 rounded font-semibold ${
+                            className={`py-1 rounded font-semibold transition-colors ${
                               playbackSpeed === speed
                                 ? "bg-red-600 text-white"
                                 : "bg-zinc-900 text-zinc-400 hover:text-white"
@@ -658,7 +724,7 @@ export default function CinePlayer({
 
               <button
                 onClick={toggleFullscreen}
-                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors"
+                className="inline-flex min-w-9 min-h-9 items-center justify-center p-1.5 hover:text-red-400 transition-colors cursor-pointer"
                 title={isFullscreen ? "Thoát toàn màn hình (F)" : "Toàn màn hình (F)"}
                 aria-label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
                 aria-pressed={isFullscreen}
