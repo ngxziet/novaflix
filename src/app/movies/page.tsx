@@ -8,7 +8,7 @@ export const metadata = {
   description: "Trọn bộ phim lẻ điện ảnh chiếu rạp độ phân giải tối thiểu 1080p Full HD.",
 };
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function MoviesPage() {
   const movies = await getMoviesByType("phim-le", 1);

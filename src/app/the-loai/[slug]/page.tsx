@@ -23,7 +23,7 @@ const GENRE_NAMES: Record<string, string> = {
   "hoat-hinh": "Phim Hoạt Hình & Anime",
 };
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function GenrePage({ params }: PageProps) {
   const { slug } = await params;

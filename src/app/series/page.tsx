@@ -8,7 +8,7 @@ export const metadata = {
   description: "Trọn bộ phim truyền hình, series nhiều tập chất lượng cao.",
 };
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function SeriesPage() {
   const movies = await getMoviesByType("phim-bo", 1);

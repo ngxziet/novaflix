@@ -9,7 +9,7 @@ import MediaRow from "@/components/home/MediaRow";
 import ContinueWatchingRow from "@/components/home/ContinueWatchingRow";
 import { FALLBACK_BLOCKBUSTERS } from "@/lib/constants";
 
-export const revalidate = 1800;
+export const revalidate = 300;
 
 export default async function HomePage() {
   const [trending, singleMovies, horrorMovies, koreanMovies, chineseMovies, animeMovies] =

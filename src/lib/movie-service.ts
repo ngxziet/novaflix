@@ -48,7 +48,7 @@ function mapToMovieItem(raw: any): MovieItem {
 export async function getTrendingMovies(page = 1): Promise<MovieItem[]> {
   try {
     const res = await fetch(`${PHIMAPI_BASE}/danh-sach/phim-moi-cap-nhat?page=${page}`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error("Failed to fetch trending");
     const data = await res.json();
@@ -64,7 +64,7 @@ export async function getTrendingMovies(page = 1): Promise<MovieItem[]> {
 export async function getMoviesByType(type: "phim-le" | "phim-bo" | "hoat-hinh", page = 1): Promise<MovieItem[]> {
   try {
     const res = await fetch(`${PHIMAPI_BASE}/v1/api/danh-sach/${type}?page=${page}&limit=24`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`Failed to fetch ${type}`);
     const data = await res.json();
@@ -80,7 +80,7 @@ export async function getMoviesByType(type: "phim-le" | "phim-bo" | "hoat-hinh",
 export async function getMoviesByGenre(genreSlug: string, page = 1): Promise<MovieItem[]> {
   try {
     const res = await fetch(`${PHIMAPI_BASE}/v1/api/the-loai/${genreSlug}?page=${page}&limit=24`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`Failed to fetch genre ${genreSlug}`);
     const data = await res.json();
@@ -96,7 +96,7 @@ export async function getMoviesByGenre(genreSlug: string, page = 1): Promise<Mov
 export async function getMoviesByCountry(countrySlug: string, page = 1): Promise<MovieItem[]> {
   try {
     const res = await fetch(`${PHIMAPI_BASE}/v1/api/quoc-gia/${countrySlug}?page=${page}&limit=24`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`Failed to fetch country ${countrySlug}`);
     const data = await res.json();
@@ -138,7 +138,7 @@ export async function searchMoviesByKeyword(keyword: string): Promise<MovieItem[
 export async function getMovieDetail(slug: string): Promise<MovieDetail | null> {
   try {
     const res = await fetch(`${PHIMAPI_BASE}/phim/${slug}`, {
-      next: { revalidate: 1800 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`Movie ${slug} not found`);
     const data = await res.json();

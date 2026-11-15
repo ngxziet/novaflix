@@ -70,3 +70,7 @@ Mở trình duyệt truy cập: `http://localhost:3000`
 npm i -g vercel
 vercel
 ```
+
+## Cập nhật dữ liệu phim
+
+Danh sách phim, danh mục và thông tin phim/tập phim dùng cache 300 giây (5 phút). Sau khi cache hết hạn, lượt truy cập tiếp theo kích hoạt lấy lại dữ liệu từ PhimAPI ở nền; các lượt truy cập sau khi hoàn tất sẽ nhận dữ liệu mới. Đây là cơ chế ISR của Next.js, không phải cron chạy khi không có người truy cập. Tìm kiếm tiếp tục lấy dữ liệu trực tiếp, không lưu cache.

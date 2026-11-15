@@ -8,7 +8,7 @@ export const metadata = {
   description: "Tuyển tập anime và hoạt hình 3D đỉnh cao sắc nét chuẩn 1080p.",
 };
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function AnimePage() {
   const movies = await getMoviesByType("hoat-hinh", 1);

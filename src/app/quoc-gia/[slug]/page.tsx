@@ -18,7 +18,7 @@ const COUNTRY_NAMES: Record<string, string> = {
   "viet-nam": "Điện Ảnh Việt Nam",
 };
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function CountryPage({ params }: PageProps) {
   const { slug } = await params;
