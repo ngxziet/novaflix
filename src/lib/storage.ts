@@ -13,6 +13,16 @@ export interface PlayerSettings {
   subtitleSize: "small" | "medium" | "large";
   subtitleColor: "white" | "yellow" | "cyan";
   subtitleOffset: number; // in seconds
+  // Tự động hóa & Bỏ qua thông minh (Auto-next, Skip Opening, Ending, Quảng cáo)
+  autoNextEpisode: boolean; // Tự động chuyển tiếp khi hết tập/phim
+  autoSkipIntro: boolean; // Tự động bỏ qua đoạn mở đầu (Opening)
+  introDuration: number; // Thời lượng đoạn mở đầu (giây, vd: 85)
+  autoSkipOutro: boolean; // Tự động bỏ qua phần kết thúc (Ending)
+  outroDuration: number; // Thời lượng phần kết thúc (giây, vd: 90)
+  autoSkipAd: boolean; // Tự động bỏ qua quảng cáo đầu video
+  adDuration: number; // Thời lượng quảng cáo đầu video (giây, vd: 30)
+  volume: number; // 0 to 1
+  fitMode: "contain" | "cover"; // Chứa trọn hoặc lấp đầy khung hình
 }
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
@@ -23,6 +33,15 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   subtitleSize: "medium",
   subtitleColor: "white",
   subtitleOffset: 0,
+  autoNextEpisode: true,
+  autoSkipIntro: false,
+  introDuration: 85,
+  autoSkipOutro: false,
+  outroDuration: 90,
+  autoSkipAd: false,
+  adDuration: 30,
+  volume: 1.0,
+  fitMode: "contain",
 };
 
 // --- QUẢN LÝ TIẾN TRÌNH XEM THEO TỪNG TẬP (PER-EPISODE) ---

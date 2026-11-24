@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getMovieDetail } from "@/lib/movie-service";
 import CinePlayer from "@/components/player/CinePlayer";
 import MediaRow from "@/components/home/MediaRow";
-import { Film, Server, Layers, Keyboard, Sparkles } from "lucide-react";
+import { Server, Layers, Keyboard } from "lucide-react";
 
 interface WatchPageProps {
   params: Promise<{ slug: string }>;
@@ -41,6 +41,9 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
           movieTitle={movie.title}
           posterUrl={movie.backdropUrl || movie.posterUrl}
           episode={currentEpisode}
+          episodes={activeEpisodes}
+          selectedServerIndex={selectedServerIndex}
+          similarMovies={movie.similarMovies || []}
         />
       </div>
 
@@ -139,6 +142,22 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
             <div className="flex items-center justify-between py-1 border-b border-white/5">
               <span>Phát / Tạm dừng</span>
               <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/10">Space / K</kbd>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
+              <span>Tập Tiếp / Tập Trước</span>
+              <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/10">N / P</kbd>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
+              <span>Bỏ qua Mở đầu (Intro)</span>
+              <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/10">I</kbd>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
+              <span>Bỏ qua Phần kết (Ending)</span>
+              <kbd className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/10">E</kbd>
+            </div>
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
+              <span>Bỏ qua Quảng cáo (+30s)</span>
+              <kbd className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">A</kbd>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-white/5">
               <span>Toàn màn hình</span>
