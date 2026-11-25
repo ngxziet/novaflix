@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import {
@@ -29,12 +29,27 @@ import {
 } from "lucide-react";
 import { Episode, MovieItem } from "@/types/movie";
 import {
+  DEFAULT_PLAYER_SETTINGS,
   getPlayerSettings,
   savePlayerSettings,
   saveWatchProgress,
   getEpisodeProgress,
+  type PlayerSettings,
 } from "@/lib/storage";
 import { formatSecondsToTime } from "@/lib/utils";
+
+const PROGRESS_SAVE_INTERVAL_MS = 15_000;
+const CONTROLS_HIDE_DELAY_MS = 3_500;
+const serverPreferences = { settings: DEFAULT_PLAYER_SETTINGS, isPipSupported: false };
+
+function subscribeToInitialPreferences() {
+  return () => {};
+}
+
+function subscribeToVisibility(listener: () => void) {
+  document.addEventListener("visibilitychange", listener);
+  return () => document.removeEventListener("visibilitychange", listener);
+}
 
 interface CinePlayerProps {
   movieSlug: string;
@@ -61,11 +76,15 @@ export default function CinePlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isPageVisible = useSyncExternalStore(
+    subscribeToVisibility,
+    () => !document.hidden,
+    () => true
+  );
 
   // Web Audio API refs for Audio Booster
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
-  const audioConnectedRef = useRef(false);
 
   // Danh sách tập & xác định tập kế tiếp / tập trước / phim gợi ý
   const episodesList = episodes && episodes.length > 0 ? episodes : [episode];
@@ -76,84 +95,45 @@ export default function CinePlayer({
   const prevEp = hasPrevEp ? episodesList[currentEpIndex - 1] : null;
   const nextMovie = !hasNextEp && similarMovies.length > 0 ? similarMovies[0] : null;
 
+  const [browserPreferences] = useState(() => ({
+    settings: getPlayerSettings(),
+    isPipSupported: typeof document !== "undefined" && document.pictureInPictureEnabled === true,
+  }));
+  const { settings: initialSettings, isPipSupported } = useSyncExternalStore(
+    subscribeToInitialPreferences,
+    () => browserPreferences,
+    () => serverPreferences
+  );
+  const [settingsChanges, setSettingsChanges] = useState<Partial<PlayerSettings>>({});
+  const {
+    volume: storedVolume, fitMode: storedFitMode, ambientGlow, audioBoost, playbackSpeed,
+    autoNextEpisode, autoSkipIntro, introDuration, autoSkipOutro, outroDuration, autoSkipAd, adDuration,
+  } = { ...initialSettings, ...settingsChanges };
+  const volume = storedVolume ?? 1;
+  const fitMode = storedFitMode ?? "contain";
+  const updateSettings = useCallback((changes: Partial<PlayerSettings>) => {
+    setSettingsChanges((previous) => ({ ...previous, ...changes }));
+    savePlayerSettings(changes);
+  }, []);
+
   // Player State
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().volume ?? 1;
-    return 1;
-  });
   const [isMuted, setIsMuted] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState<"none" | "native" | "fallback">("none");
   const isFullscreen = fullscreenMode !== "none";
   const [showControls, setShowControls] = useState(true);
-  const [controlsActivity, setControlsActivity] = useState(0);
+  const lastControlsActivityRef = useRef(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showAdvancedTiming, setShowAdvancedTiming] = useState(false);
-
-  // Tỉ lệ hiển thị (Fit: Chứa trọn khung hình, Cover: Phóng to lấp đầy màn hình tràn viền)
-  const [fitMode, setFitMode] = useState<"contain" | "cover">(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().fitMode ?? "contain";
-    return "contain";
-  });
-
-  // Hỗ trợ Picture-in-Picture (PiP)
-  const [isPipSupported] = useState(() => {
-    if (typeof document !== "undefined" && "pictureInPictureEnabled" in document) {
-      return true;
-    }
-    return false;
-  });
 
   // Phản hồi cử chỉ chạm đúp (Double-tap to seek trên mobile/tablet)
   const [doubleTapFeedback, setDoubleTapFeedback] = useState<"left" | "right" | null>(null);
   const doubleTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTapRef = useRef<{ time: number; x: number } | null>(null);
-
-  // Settings khởi tạo an toàn từ LocalStorage (Lazy initialization)
-  const [ambientGlow, setAmbientGlow] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().ambientGlow;
-    return true;
-  });
-  const [audioBoost, setAudioBoost] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().audioBoost;
-    return false;
-  });
-  const [playbackSpeed, setPlaybackSpeed] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().playbackSpeed;
-    return 1.0;
-  });
-  const [autoNextEpisode, setAutoNextEpisode] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().autoNextEpisode;
-    return true;
-  });
-  const [autoSkipIntro, setAutoSkipIntro] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().autoSkipIntro;
-    return false;
-  });
-  const [introDuration, setIntroDuration] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().introDuration;
-    return 85;
-  });
-  const [autoSkipOutro, setAutoSkipOutro] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().autoSkipOutro;
-    return false;
-  });
-  const [outroDuration, setOutroDuration] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().outroDuration;
-    return 90;
-  });
-  const [autoSkipAd, setAutoSkipAd] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().autoSkipAd;
-    return false;
-  });
-  const [adDuration, setAdDuration] = useState(() => {
-    if (typeof window !== "undefined") return getPlayerSettings().adDuration;
-    return 30;
-  });
 
   // Subtitles
   const [customSubtitleUrl, setCustomSubtitleUrl] = useState<string | null>(null);
@@ -173,48 +153,40 @@ export default function CinePlayer({
   // Overlay chuyển tập / phim tiếp theo & Đếm ngược
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sourceId = `${movieSlug}:${episode.slug}:${episode.streamUrl}`;
+  const [previousSourceId, setPreviousSourceId] = useState(sourceId);
+  if (sourceId !== previousSourceId) {
+    setPreviousSourceId(sourceId);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setShowControls(true);
+    setShowNextOverlay(false);
+    setCountdown(null);
+  }
 
   // Refs cờ đánh dấu đã auto-skip trong tập hiện tại
-  const hasAutoSkippedAdRef = useRef(false);
-  const hasAutoSkippedIntroRef = useRef(false);
   const hasAutoSkippedOutroRef = useRef(false);
-
 
   // Screen Wake Lock API: Giữ màn hình điện thoại luôn sáng khi đang xem phim
   useEffect(() => {
+    if (!isPlaying || isBuffering || !isPageVisible || !("wakeLock" in navigator)) return;
+
     let wakeLock: WakeLockSentinel | null = null;
-
-    const requestWakeLock = async () => {
-      if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
-      try {
-        if (isPlaying && document.visibilityState === "visible") {
-          wakeLock = await navigator.wakeLock.request("screen");
-        }
-      } catch {
-        // Trình duyệt từ chối hoặc hệ thống tiết kiệm pin
-      }
-    };
-
-    if (isPlaying) {
-      void requestWakeLock();
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && isPlaying) {
-        void requestWakeLock();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    let cancelled = false;
+    void navigator.wakeLock.request("screen").then((lock) => {
+      if (cancelled || document.hidden) return lock.release();
+      wakeLock = lock;
+    }).catch(() => {
+      // Trình duyệt có thể từ chối khi thiết bị đang tiết kiệm pin.
+    });
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (wakeLock) {
-        void wakeLock.release().catch(() => {});
-      }
+      cancelled = true;
+      if (wakeLock && !wakeLock.released) void wakeLock.release().catch(() => {});
     };
-  }, [isPlaying]);
+  }, [isPlaying, isBuffering, isPageVisible]);
 
   // Điều hướng chuyển tập / phim tiếp theo
   const goToNext = useCallback(() => {
@@ -248,17 +220,9 @@ export default function CinePlayer({
     }
   }, [hasNextEp, nextMovie, autoNextEpisode]);
 
-  // Điều chỉnh state khi đổi tập phim theo chuẩn React 19 (adjusting state during render)
-  const [prevEpisodeSlug, setPrevEpisodeSlug] = useState(episode.slug);
-  if (prevEpisodeSlug !== episode.slug) {
-    setPrevEpisodeSlug(episode.slug);
-    setShowNextOverlay(false);
-    setCountdown(null);
-  }
-
   // Xử lý đếm ngược chuyển tiếp tập mới
   useEffect(() => {
-    if (countdown === null) return;
+    if (countdown === null || !isPageVisible) return;
     if (countdown <= 0) {
       const timer = setTimeout(() => {
         goToNext();
@@ -269,7 +233,7 @@ export default function CinePlayer({
       setCountdown((prev) => (prev !== null ? prev - 1 : null));
     }, 1000);
     return () => clearTimeout(timer);
-  }, [countdown, goToNext]);
+  }, [countdown, goToNext, isPageVisible]);
 
   // Bỏ qua quảng cáo (Skip Ad)
   const handleSkipAd = useCallback(() => {
@@ -318,6 +282,57 @@ export default function CinePlayer({
     }
   }, [showToast]);
 
+  // Lưu định kỳ khi đang phát và lưu lần cuối trước khi rời tập.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let hasPlayed = false;
+    let lastSavedTime = -1;
+    let lastSavedAt = performance.now();
+    const saveProgress = () => {
+      const time = Math.floor(video.currentTime);
+      const length = Math.floor(video.duration);
+      if (!hasPlayed || time <= 5 || !Number.isFinite(length) || length <= 0 || time === lastSavedTime) return;
+
+      saveWatchProgress({
+        movieId: movieSlug,
+        slug: movieSlug,
+        title: movieTitle,
+        posterUrl,
+        episodeName: episode.name,
+        episodeSlug: episode.slug,
+        progressSeconds: time,
+        durationSeconds: length,
+      });
+      lastSavedTime = time;
+      lastSavedAt = performance.now();
+    };
+    const trackPlayback = () => { hasPlayed = true; };
+    const handleTimeUpdate = () => {
+      if (!video.paused && performance.now() - lastSavedAt >= PROGRESS_SAVE_INTERVAL_MS) saveProgress();
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) saveProgress();
+    };
+
+    video.addEventListener("playing", trackPlayback);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("pause", saveProgress);
+    video.addEventListener("ended", saveProgress);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", saveProgress);
+    return () => {
+      saveProgress();
+      video.removeEventListener("playing", trackPlayback);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("pause", saveProgress);
+      video.removeEventListener("ended", saveProgress);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", saveProgress);
+    };
+  }, [movieSlug, movieTitle, posterUrl, episode.name, episode.slug, episode.streamUrl]);
+
   // Thiết lập luồng phát Video (HLS.js tối ưu chống giật & khôi phục đúng tập)
   useEffect(() => {
     const video = videoRef.current;
@@ -325,47 +340,46 @@ export default function CinePlayer({
 
     let hls: Hls | null = null;
     const streamUrl = episode.streamUrl;
-
-    // Reset cờ auto-skip cho tập mới
-    hasAutoSkippedAdRef.current = false;
-    hasAutoSkippedIntroRef.current = false;
     hasAutoSkippedOutroRef.current = false;
-
-    // Reset thời gian hiển thị về 0 cho tập mới
-    setCurrentTime(0);
 
     const restoreProgress = () => {
       const savedProg = getEpisodeProgress(movieSlug, episode.slug);
       if (savedProg > 10) {
         video.currentTime = savedProg;
-        setCurrentTime(savedProg);
-      } else {
-        // Tự động bỏ qua thông minh
-        if (autoSkipAd && adDuration > 0 && !hasAutoSkippedAdRef.current) {
-          video.currentTime = adDuration;
-          setCurrentTime(adDuration);
-          hasAutoSkippedAdRef.current = true;
-          showToast("Đã tự động bỏ qua quảng cáo đầu phim");
-        } else if (autoSkipIntro && introDuration > 0 && !hasAutoSkippedIntroRef.current) {
-          video.currentTime = introDuration;
-          setCurrentTime(introDuration);
-          hasAutoSkippedIntroRef.current = true;
-          showToast("Đã tự động bỏ qua phần mở đầu");
-        } else {
-          video.currentTime = 0;
-          setCurrentTime(0);
-        }
+        return;
       }
+
+      const settings = getPlayerSettings();
+      if (settings.autoSkipAd && settings.adDuration > 0) {
+        video.currentTime = settings.adDuration;
+        showToast("Đã tự động bỏ qua quảng cáo đầu phim");
+      } else if (settings.autoSkipIntro && settings.introDuration > 0) {
+        video.currentTime = settings.introDuration;
+        showToast("Đã tự động bỏ qua phần mở đầu");
+      }
+    };
+
+    const syncBuffering = () => {
+      if (document.pictureInPictureElement === video ||
+          (!document.hidden && (!video.paused || video.seeking || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA))) {
+        hls?.resumeBuffering();
+      } else {
+        hls?.pauseBuffering();
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden && document.pictureInPictureElement !== video) video.pause();
+      syncBuffering();
     };
 
     if (Hls.isSupported() && streamUrl.includes(".m3u8")) {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        backBufferLength: 90,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 300,
-        maxBufferSize: 60 * 1000 * 1000,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 45,
+        maxBufferSize: 30 * 1000 * 1000,
         maxBufferHole: 0.5,
         highBufferWatchdogPeriod: 2,
         nudgeOffset: 0.1,
@@ -375,8 +389,9 @@ export default function CinePlayer({
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.once(Hls.Events.MANIFEST_PARSED, () => {
         restoreProgress();
+        syncBuffering();
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -384,6 +399,7 @@ export default function CinePlayer({
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               hls?.startLoad();
+              syncBuffering();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls?.recoverMediaError();
@@ -394,20 +410,32 @@ export default function CinePlayer({
           }
         }
       });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = streamUrl;
-      video.addEventListener("loadedmetadata", restoreProgress, { once: true });
     } else {
-      video.src = streamUrl;
       video.addEventListener("loadedmetadata", restoreProgress, { once: true });
+      video.src = streamUrl;
     }
 
+    const bufferingEvents = ["play", "pause", "seeking", "seeked", "loadeddata", "ended", "enterpictureinpicture"];
+    if (hls) {
+      for (const event of bufferingEvents) video.addEventListener(event, syncBuffering);
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    video.addEventListener("leavepictureinpicture", handleVisibilityChange);
+    handleVisibilityChange();
+
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      video.removeEventListener("leavepictureinpicture", handleVisibilityChange);
+      video.removeEventListener("loadedmetadata", restoreProgress);
       if (hls) {
+        for (const event of bufferingEvents) video.removeEventListener(event, syncBuffering);
         hls.destroy();
+      } else {
+        video.removeAttribute("src");
+        video.load();
       }
     };
-  }, [episode.streamUrl, episode.slug, movieSlug, autoSkipAd, adDuration, autoSkipIntro, introDuration, showToast]);
+  }, [episode.streamUrl, episode.slug, movieSlug, showToast]);
 
   // Khôi phục mức âm lượng đã lưu
   useEffect(() => {
@@ -416,49 +444,57 @@ export default function CinePlayer({
     }
   }, [volume]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.defaultPlaybackRate = playbackSpeed;
+    video.playbackRate = playbackSpeed;
+  }, [playbackSpeed]);
+
+  useEffect(() => () => {
+    if (customSubtitleUrl) URL.revokeObjectURL(customSubtitleUrl);
+  }, [customSubtitleUrl]);
+
   // Bộ khuếch đại âm thanh Web Audio API (Boost 180%)
   const initAudioBooster = useCallback(() => {
-    if (audioConnectedRef.current || !videoRef.current) return;
+    if (audioCtxRef.current || !videoRef.current) return;
+
+    let ctx: AudioContext | undefined;
     try {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AudioCtx();
-      const source = ctx.createMediaElementSource(videoRef.current);
+      ctx = new AudioCtx();
       const gain = ctx.createGain();
+      const source = ctx.createMediaElementSource(videoRef.current);
 
-      gain.gain.value = audioBoost ? 1.8 : 1.0;
+      gain.gain.value = 1.8;
       source.connect(gain);
       gain.connect(ctx.destination);
 
       audioCtxRef.current = ctx;
       gainNodeRef.current = gain;
-      audioConnectedRef.current = true;
     } catch {
-      // Bỏ qua nếu trình duyệt chặn tự động chạy AudioContext
+      void ctx?.close().catch(() => {});
     }
-  }, [audioBoost]);
+  }, []);
+
+  useEffect(() => () => {
+    const ctx = audioCtxRef.current;
+    audioCtxRef.current = null;
+    gainNodeRef.current = null;
+    void ctx?.close().catch(() => {});
+  }, []);
 
   const toggleAudioBoost = useCallback(() => {
-    initAudioBooster();
-    setAudioBoost((prev) => {
-      const next = !prev;
-      savePlayerSettings({ audioBoost: next });
-      if (gainNodeRef.current && audioCtxRef.current) {
-        if (audioCtxRef.current.state === "suspended") {
-          audioCtxRef.current.resume();
-        }
-        gainNodeRef.current.gain.setTargetAtTime(
-          next ? 1.8 : 1.0,
-          audioCtxRef.current.currentTime,
-          0.05
-        );
-      }
-      return next;
-    });
-  }, [initAudioBooster]);
+    const next = !audioBoost;
+    if (next && videoRef.current && !videoRef.current.paused) initAudioBooster();
+    updateSettings({ audioBoost: next });
+    const ctx = audioCtxRef.current;
+    if (ctx) gainNodeRef.current?.gain.setTargetAtTime(next ? 1.8 : 1.0, ctx.currentTime, 0.05);
+  }, [audioBoost, initAudioBooster, updateSettings]);
 
-  // Trích xuất màu sắc động cho Ambient Glow (Canvas 32x18 throttled 600ms)
+  // Chỉ lấy mẫu khung hình khi video thực sự đang phát và trang còn hiển thị.
   useEffect(() => {
-    if (!ambientGlow) return;
+    if (!ambientGlow || !isPlaying || isBuffering || !isPageVisible) return;
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
@@ -466,10 +502,8 @@ export default function CinePlayer({
     const ctx = canvas.getContext("2d", { willReadFrequently: false });
     if (!ctx) return;
 
-    let intervalId: NodeJS.Timeout | null = null;
-
     const updateGlow = () => {
-      if (video.paused || video.ended || video.readyState < 2) return;
+      if (document.hidden || video.paused || video.ended || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       try {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       } catch {
@@ -477,44 +511,25 @@ export default function CinePlayer({
       }
     };
 
-    intervalId = setInterval(updateGlow, 600);
+    updateGlow();
+    const intervalId = setInterval(updateGlow, 1000);
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [ambientGlow]);
-
-  // Lưu tiến độ xem vào LocalStorage (Debounce 3 giây)
-  useEffect(() => {
-    if (currentTime > 5 && duration > 0) {
-      const timer = setTimeout(() => {
-        saveWatchProgress({
-          movieId: movieSlug,
-          slug: movieSlug,
-          title: movieTitle,
-          posterUrl,
-          episodeName: episode.name,
-          episodeSlug: episode.slug,
-          progressSeconds: Math.floor(currentTime),
-          durationSeconds: Math.floor(duration),
-        });
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentTime, duration, movieSlug, movieTitle, posterUrl, episode.name, episode.slug]);
+    return () => clearInterval(intervalId);
+  }, [ambientGlow, isPlaying, isBuffering, isPageVisible]);
 
   // Điều khiển Play/Pause đồng bộ với video element
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    initAudioBooster();
-
     if (video.paused) {
+      if (audioBoost) initAudioBooster();
+      const ctx = audioCtxRef.current;
+      if (ctx?.state === "suspended") void ctx.resume().catch(() => {});
       void video.play().catch(() => setShowControls(true));
     } else {
       video.pause();
     }
-  }, [initAudioBooster]);
+  }, [audioBoost, initAudioBooster]);
 
   const skipTime = useCallback((amount: number) => {
     if (!videoRef.current) return;
@@ -639,10 +654,7 @@ export default function CinePlayer({
           break;
         case "g":
           e.preventDefault();
-          setAmbientGlow((prev) => {
-            savePlayerSettings({ ambientGlow: !prev });
-            return !prev;
-          });
+          updateSettings({ ambientGlow: !ambientGlow });
           break;
       }
     };
@@ -659,20 +671,26 @@ export default function CinePlayer({
     toggleFullscreen,
     skipTime,
     toggleAudioBoost,
+    ambientGlow,
+    updateSettings,
   ]);
 
   const revealControls = () => {
-    setShowControls(true);
-    setControlsActivity((activity) => activity + 1);
+    lastControlsActivityRef.current = performance.now();
+    if (!showControls) setShowControls(true);
   };
 
   useEffect(() => {
     if (!showControls || !isPlaying || showSettings) return;
-    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3500);
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    lastControlsActivityRef.current = performance.now();
+    const hideControlsWhenIdle = () => {
+      const remaining = CONTROLS_HIDE_DELAY_MS - (performance.now() - lastControlsActivityRef.current);
+      if (remaining > 0) timer = setTimeout(hideControlsWhenIdle, remaining);
+      else setShowControls(false);
     };
-  }, [showControls, isPlaying, showSettings, controlsActivity]);
+    let timer = setTimeout(hideControlsWhenIdle, CONTROLS_HIDE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [showControls, isPlaying, showSettings]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "mouse") return;
@@ -758,7 +776,7 @@ export default function CinePlayer({
     >
       <div className="cine-player-surface relative w-full h-full">
         {/* Ambient Glow Canvas Layer */}
-        {ambientGlow && (
+        {ambientGlow && isPlaying && isPageVisible && (
           <canvas
             ref={canvasRef}
             width={32}
@@ -771,10 +789,19 @@ export default function CinePlayer({
         <video
           ref={videoRef}
           playsInline
+          preload="metadata"
           poster={posterUrl}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => {
+            if (audioBoost) initAudioBooster();
+            const ctx = audioCtxRef.current;
+            if (ctx) void ctx.resume().catch(() => {});
+            setIsPlaying(true);
+          }}
           onPause={() => {
+            const ctx = audioCtxRef.current;
+            if (ctx?.state === "running") void ctx.suspend().catch(() => {});
             setIsPlaying(false);
+            setIsBuffering(false);
             setShowControls(true);
           }}
           onWaiting={() => setIsBuffering(true)}
@@ -786,7 +813,8 @@ export default function CinePlayer({
             if (videoRef.current) {
               const cur = videoRef.current.currentTime;
               const dur = videoRef.current.duration;
-              setCurrentTime(cur);
+              const displayedTime = Math.floor(cur);
+              if (displayedTime !== currentTime) setCurrentTime(displayedTime);
 
               // Tự động bỏ qua kết thúc (Auto-skip Outro) nếu được bật
               if (
@@ -970,8 +998,7 @@ export default function CinePlayer({
                 <button
                   onClick={() => {
                     const next = !autoNextEpisode;
-                    setAutoNextEpisode(next);
-                    savePlayerSettings({ autoNextEpisode: next });
+                    updateSettings({ autoNextEpisode: next });
                     if (!next) {
                       setCountdown(null);
                     } else if (countdown === null) {
@@ -1147,9 +1174,8 @@ export default function CinePlayer({
                   value={isMuted ? 0 : volume}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    setVolume(val);
                     setIsMuted(false);
-                    savePlayerSettings({ volume: val });
+                    updateSettings({ volume: val });
                     if (videoRef.current) {
                       videoRef.current.volume = val;
                       videoRef.current.muted = false;
@@ -1183,8 +1209,7 @@ export default function CinePlayer({
               {/* Nút Ambient Glow (Desktop) */}
               <button
                 onClick={() => {
-                  setAmbientGlow(!ambientGlow);
-                  savePlayerSettings({ ambientGlow: !ambientGlow });
+                  updateSettings({ ambientGlow: !ambientGlow });
                 }}
                 className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   ambientGlow
@@ -1280,8 +1305,7 @@ export default function CinePlayer({
                 </button>
                 <button
                   onClick={() => {
-                    setAmbientGlow(!ambientGlow);
-                    savePlayerSettings({ ambientGlow: !ambientGlow });
+                    updateSettings({ ambientGlow: !ambientGlow });
                   }}
                   className={`py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold transition-all ${
                     ambientGlow ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40" : "bg-zinc-900 text-zinc-300 border border-white/5"
@@ -1301,8 +1325,7 @@ export default function CinePlayer({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => {
-                      setFitMode("contain");
-                      savePlayerSettings({ fitMode: "contain" });
+                      updateSettings({ fitMode: "contain" });
                     }}
                     className={`py-1.5 px-2 rounded-lg font-semibold transition-colors cursor-pointer text-center ${
                       fitMode === "contain"
@@ -1314,8 +1337,7 @@ export default function CinePlayer({
                   </button>
                   <button
                     onClick={() => {
-                      setFitMode("cover");
-                      savePlayerSettings({ fitMode: "cover" });
+                      updateSettings({ fitMode: "cover" });
                     }}
                     className={`py-1.5 px-2 rounded-lg font-semibold transition-colors cursor-pointer text-center ${
                       fitMode === "cover"
@@ -1336,9 +1358,7 @@ export default function CinePlayer({
                     <button
                       key={speed}
                       onClick={() => {
-                        setPlaybackSpeed(speed);
-                        if (videoRef.current) videoRef.current.playbackRate = speed;
-                        savePlayerSettings({ playbackSpeed: speed });
+                        updateSettings({ playbackSpeed: speed });
                       }}
                       className={`py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
                         playbackSpeed === speed
@@ -1368,8 +1388,7 @@ export default function CinePlayer({
                   <button
                     onClick={() => {
                       const next = !autoNextEpisode;
-                      setAutoNextEpisode(next);
-                      savePlayerSettings({ autoNextEpisode: next });
+                      updateSettings({ autoNextEpisode: next });
                     }}
                     className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
                       autoNextEpisode ? "bg-red-600 shadow-md shadow-red-600/30" : "bg-zinc-800"
@@ -1392,8 +1411,7 @@ export default function CinePlayer({
                   <button
                     onClick={() => {
                       const next = !autoSkipIntro;
-                      setAutoSkipIntro(next);
-                      savePlayerSettings({ autoSkipIntro: next });
+                      updateSettings({ autoSkipIntro: next });
                     }}
                     className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
                       autoSkipIntro ? "bg-red-600 shadow-md shadow-red-600/30" : "bg-zinc-800"
@@ -1416,8 +1434,7 @@ export default function CinePlayer({
                   <button
                     onClick={() => {
                       const next = !autoSkipAd;
-                      setAutoSkipAd(next);
-                      savePlayerSettings({ autoSkipAd: next });
+                      updateSettings({ autoSkipAd: next });
                     }}
                     className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
                       autoSkipAd ? "bg-amber-500 shadow-md shadow-amber-500/30" : "bg-zinc-800"
@@ -1440,8 +1457,7 @@ export default function CinePlayer({
                   <button
                     onClick={() => {
                       const next = !autoSkipOutro;
-                      setAutoSkipOutro(next);
-                      savePlayerSettings({ autoSkipOutro: next });
+                      updateSettings({ autoSkipOutro: next });
                     }}
                     className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
                       autoSkipOutro ? "bg-red-600 shadow-md shadow-red-600/30" : "bg-zinc-800"
@@ -1475,8 +1491,7 @@ export default function CinePlayer({
                           <button
                             key={sec}
                             onClick={() => {
-                              setIntroDuration(sec);
-                              savePlayerSettings({ introDuration: sec });
+                              updateSettings({ introDuration: sec });
                             }}
                             className={`py-1 rounded font-bold ${
                               introDuration === sec ? "bg-red-600 text-white" : "bg-zinc-900 text-zinc-400"
@@ -1494,8 +1509,7 @@ export default function CinePlayer({
                           <button
                             key={sec}
                             onClick={() => {
-                              setAdDuration(sec);
-                              savePlayerSettings({ adDuration: sec });
+                              updateSettings({ adDuration: sec });
                             }}
                             className={`py-1 rounded font-bold ${
                               adDuration === sec ? "bg-amber-500 text-black" : "bg-zinc-900 text-zinc-400"
@@ -1513,8 +1527,7 @@ export default function CinePlayer({
                           <button
                             key={sec}
                             onClick={() => {
-                              setOutroDuration(sec);
-                              savePlayerSettings({ outroDuration: sec });
+                              updateSettings({ outroDuration: sec });
                             }}
                             className={`py-1 rounded font-bold ${
                               outroDuration === sec ? "bg-red-600 text-white" : "bg-zinc-900 text-zinc-400"

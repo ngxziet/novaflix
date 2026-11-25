@@ -220,6 +220,12 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        webView.resumeTimers();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         webView.onResume();
@@ -229,6 +235,12 @@ public final class MainActivity extends Activity {
     protected void onPause() {
         webView.onPause();
         super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        webView.pauseTimers();
+        super.onStop();
     }
 
     @Override

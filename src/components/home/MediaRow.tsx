@@ -29,7 +29,7 @@ function MediaRowComponent({ title, subtitle, movies, viewAllHref }: MediaRowPro
   if (!movies || movies.length === 0) return null;
 
   return (
-    <section className="relative my-7 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto group/row">
+    <section className="relative my-7 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto group/row [content-visibility:auto] [contain-intrinsic-block-size:auto_330px] sm:[contain-intrinsic-block-size:auto_380px] md:[contain-intrinsic-block-size:auto_415px]">
       {/* Row Header */}
       <div className="flex items-end justify-between mb-3.5">
         <div>
@@ -63,7 +63,7 @@ function MediaRowComponent({ title, subtitle, movies, viewAllHref }: MediaRowPro
 
         <div
           ref={scrollRef}
-          className="flex items-stretch gap-3.5 overflow-x-auto no-scrollbar scroll-smooth pb-3 pt-1 will-change-scroll"
+          className="flex items-stretch gap-3.5 overflow-x-auto no-scrollbar scroll-smooth pb-3 pt-1"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",

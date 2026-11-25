@@ -19,7 +19,7 @@ export default function MobileBottomBar() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#07080b]/90 backdrop-blur-xl border-t border-white/10 px-3 py-1.5 pb-safe shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#07080b]/98 border-t border-white/10 px-3 py-1.5 pb-safe shadow-2xl">
       <div className="flex items-center justify-around">
         {navItems.slice(0, 2).map((item) => {
           const Icon = item.icon;

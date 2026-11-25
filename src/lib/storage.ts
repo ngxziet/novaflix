@@ -26,7 +26,7 @@ export interface PlayerSettings {
 }
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
-  ambientGlow: true,
+  ambientGlow: false,
   audioBoost: false,
   audioBoostGain: 1.5,
   playbackSpeed: 1.0,
