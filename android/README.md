@@ -2,12 +2,12 @@
 
 ## Cài APK
 
-Bản APK hỗ trợ Android 8.0 (API 26) trở lên. Mở tệp `NovaFlix.apk` trên điện thoại và xác nhận cài đặt. Nếu Android hỏi, cho phép ứng dụng đang mở tệp cài APK từ nguồn này. Xem phim cần kết nối mạng.
+Chọn **Tải APK** trên trang chủ NovaFlix hoặc dùng [link tải APK mới nhất](https://github.com/ngxziet/novaflix/releases/latest/download/NovaFlix.apk). Bản APK hỗ trợ Android 8.0 (API 26) trở lên. Mở `NovaFlix.apk` trên điện thoại và xác nhận cài đặt. Nếu Android hỏi, cho phép ứng dụng đang mở tệp cài APK từ nguồn này. Xem phim cần kết nối mạng.
 
 ## Cập nhật
 
 - **Thay đổi giao diện, API và trình phát web.** Vercel triển khai các commit trên `main` đến `https://novaflix-lyart.vercel.app/`. APK mở địa chỉ production này, nên khi đóng rồi mở lại NovaFlix, điện thoại tải bản web đã triển khai ngay cả khi vẫn dùng APK cũ.
-- **Thay đổi trong thư mục `android/`.** Workflow [Android APK](https://github.com/ngxziet/novaflix/actions/workflows/android-apk.yml) tự build APK đã ký sau khi thay đổi lên `main`. Mở lần chạy thành công, tải tệp trong **Artifacts**, giải nén rồi cài `NovaFlix.apk` đè lên bản đang dùng. Có thể chạy lại workflow từ **Run workflow** trên `main`.
+- **Thay đổi trong thư mục `android/`.** Workflow tự build APK đã ký và phát hành lên GitHub Releases sau khi thay đổi lên `main`. Tải lại từ nút **Tải APK** trên trang chủ rồi cài đè lên bản đang dùng. Có thể tạo bản mới từ **Run workflow** trên `main`. [Workflow Android APK](https://github.com/ngxziet/novaflix/actions/workflows/android-apk.yml)
 
 Giữ application ID `io.github.ngxziet.novaflix` và cùng khóa ký giữa các bản. Workflow tăng `versionCode` theo số lần chạy để Android nhận bản mới. Workflow dùng hai GitHub Actions secrets `NOVAFLIX_KEYSTORE_BASE64` và `NOVAFLIX_KEYSTORE_PASSWORD`. Sao lưu khóa ký và mật khẩu ở nơi an toàn để sau này tiếp tục phát hành bản cập nhật.
 

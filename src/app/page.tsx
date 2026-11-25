@@ -1,3 +1,4 @@
+import { Download, Smartphone } from "lucide-react";
 import {
   getTrendingMovies,
   getMoviesByType,
@@ -27,7 +28,30 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen pb-16">
       {/* Hero Spotlight Header */}
-      <HeroSpotlight movie={heroMovie} />
+      <HeroSpotlight movie={heroMovie}>
+        <div className="relative z-20 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <aside
+            aria-label="Ứng dụng NovaFlix cho Android"
+            className="flex w-fit max-w-full items-center gap-3 rounded-2xl border border-rose-400/25 bg-[#111016]/95 px-3 py-2 shadow-lg sm:px-4"
+          >
+            <span className="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-300 sm:flex">
+              <Smartphone aria-hidden="true" className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-tight text-white">NovaFlix cho Android</p>
+              <p className="mt-0.5 text-xs text-zinc-400">Android 8 trở lên</p>
+            </div>
+            <a
+              href="https://github.com/ngxziet/novaflix/releases/latest/download/NovaFlix.apk"
+              aria-label="Tải APK NovaFlix cho Android"
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-3 text-sm font-bold text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
+            >
+              <Download aria-hidden="true" className="size-4" />
+              Tải APK
+            </a>
+          </aside>
+        </div>
+      </HeroSpotlight>
 
       {/* Continue Watching (Local Storage First) */}
       <ContinueWatchingRow />

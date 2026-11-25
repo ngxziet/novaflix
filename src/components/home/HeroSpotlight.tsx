@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Play, Info, Star, Sparkles, Check, Bookmark } from "lucide-react";
 import { MovieItem } from "@/types/movie";
 import { isFavorite, toggleFavorite } from "@/lib/storage";
 
 interface HeroSpotlightProps {
   movie: MovieItem;
+  children: ReactNode;
 }
 
-export default function HeroSpotlight({ movie }: HeroSpotlightProps) {
+export default function HeroSpotlight({ movie, children }: HeroSpotlightProps) {
   const [backdropSrc, setBackdropSrc] = useState(movie.backdropUrl || movie.posterUrl);
   const [saved, setSaved] = useState(() => isFavorite(movie.slug));
 
@@ -30,7 +31,7 @@ export default function HeroSpotlight({ movie }: HeroSpotlightProps) {
   };
 
   return (
-    <div className="relative w-full -mt-20 sm:-mt-24 min-h-[580px] sm:h-[85vh] sm:min-h-[660px] max-h-[880px] overflow-hidden flex flex-col justify-end pt-32 pb-14 sm:pb-20">
+    <div className="relative w-full -mt-20 sm:-mt-24 min-h-[580px] sm:h-[85vh] sm:min-h-[660px] max-h-[880px] overflow-hidden flex flex-col pt-20 sm:pt-24 pb-14 sm:pb-20">
       {/* High-res Backdrop with Fallback */}
       <Image
         src={backdropSrc}
@@ -48,8 +49,10 @@ export default function HeroSpotlight({ movie }: HeroSpotlightProps) {
       <div className="absolute inset-0 bg-gradient-to-t from-[#07080b] via-[#07080b]/60 to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#07080b] via-[#07080b]/70 to-transparent w-full md:w-3/4 pointer-events-none" />
 
+      {children}
+
       {/* Hero Content */}
-      <div className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 z-20 space-y-4">
+      <div className="relative max-w-7xl mx-auto mt-auto w-full px-4 pt-8 sm:px-6 lg:px-8 z-20 space-y-4">
         {/* Quality & Rating Tags */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <span className="flex items-center gap-1 text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded bg-red-600 text-white shadow-lg shadow-red-600/30 border border-red-400/40">
