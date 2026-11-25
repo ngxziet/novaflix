@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#07080B</color>
+    <color name="launcher_background">#D41430</color>
+
+    <style name="Theme.NovaFlix" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:colorAccent">#FF5269</item>
+    </style>
+</resources>

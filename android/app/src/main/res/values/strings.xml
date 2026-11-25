@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NovaFlix</string>
+    <string name="home_url" translatable="false">https://novaflix-lyart.vercel.app/</string>
+    <string name="load_error">Không mở được NovaFlix. Hãy kiểm tra kết nối mạng và thử lại.</string>
+    <string name="retry">Thử lại</string>
+</resources>

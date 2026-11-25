@@ -1,0 +1,58 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Build and verify signed APK
+        working-directory: android
+        env:
+          NOVAFLIX_KEYSTORE_BASE64: ${{ secrets.NOVAFLIX_KEYSTORE_BASE64 }}
+          NOVAFLIX_KEYSTORE_PASSWORD: ${{ secrets.NOVAFLIX_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${NOVAFLIX_KEYSTORE_BASE64}" || -z "${NOVAFLIX_KEYSTORE_PASSWORD}" ]]; then
+            echo "::error::Configure the NovaFlix Android signing secrets before building a release."
+            exit 1
+          fi
+
+          export NOVAFLIX_KEYSTORE_FILE
+          NOVAFLIX_KEYSTORE_FILE="$(mktemp "${RUNNER_TEMP}/novaflix-signing.XXXXXX.p12")"
+          trap 'rm -f -- "$NOVAFLIX_KEYSTORE_FILE"' EXIT
+          printf '%s' "$NOVAFLIX_KEYSTORE_BASE64" | base64 --decode > "$NOVAFLIX_KEYSTORE_FILE"
+          unset NOVAFLIX_KEYSTORE_BASE64
+
+          bash ./gradlew --no-daemon :app:assembleRelease :app:lintRelease \
+            -PnovaVersionCode="$((GITHUB_RUN_NUMBER + 1))" \
+            -PnovaVersionName="1.0.${GITHUB_RUN_NUMBER}"
+
+          apk="${RUNNER_TEMP}/NovaFlix.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          "${ANDROID_HOME}/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: NovaFlix-Android-${{ github.run_number }}
+          path: ${{ runner.temp }}/NovaFlix.apk
+          if-no-files-found: error
