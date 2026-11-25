@@ -2,7 +2,7 @@
 
 ## Cài APK
 
-Chọn **Tải APK** trên trang chủ NovaFlix hoặc dùng [link tải APK mới nhất](https://github.com/ngxziet/novaflix/releases/latest/download/NovaFlix.apk). Bản APK hỗ trợ Android 8.0 (API 26) trở lên. Mở `NovaFlix.apk` trên điện thoại và xác nhận cài đặt. Nếu Android hỏi, cho phép ứng dụng đang mở tệp cài APK từ nguồn này. Xem phim cần kết nối mạng.
+Chọn **Tải APK** trên trang chủ NovaFlix hoặc dùng [link tải APK mới nhất](https://novaflix-lyart.vercel.app/download/android). Bản APK hỗ trợ Android 8.0 (API 26) trở lên. Mở `NovaFlix.apk` trên điện thoại và xác nhận cài đặt. Nếu Android hỏi, cho phép ứng dụng đang mở tệp cài APK từ nguồn này. Xem phim cần kết nối mạng.
 
 ## Cập nhật
 

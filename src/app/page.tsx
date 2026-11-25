@@ -42,7 +42,7 @@ export default async function HomePage() {
               <p className="mt-0.5 text-xs text-zinc-400">Android 8 trở lên</p>
             </div>
             <a
-              href="https://github.com/ngxziet/novaflix/releases/latest/download/NovaFlix.apk"
+              href="/download/android"
               aria-label="Tải APK NovaFlix cho Android"
               className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-red-700 px-3 text-sm font-bold text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
             >
